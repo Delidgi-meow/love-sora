@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════
-// AI — генерация правил и анализ чата
-// ═══════════════════════════════════════════
-
 import { MIN_SCORE, RELATION_TYPES } from './config.js';
 import { cfg, loveData, toast } from './state.js';
 
