@@ -209,10 +209,10 @@ export function renderChanges() {
     let html = '';
     arr.forEach((c, i) => {
         const pos = c.delta >= 0, cls = pos ? 'ls-card-pos' : 'ls-card-neg';
-        const icon = pos ? '&#10084;&#65039;' : '&#128148;';
+        const icon = pos ? '<i class="fa-solid fa-heart ls-heart-icon ls-icon-pos"></i>' : '<i class="fa-solid fa-heart-crack ls-heart-icon ls-icon-neg"></i>';
         const ph = pos ? 'При каких условиях растёт...' : 'При каких условиях падает...';
         html += `<div class="ls-card ${cls}" data-idx="${i}">
-            <div class="ls-heart-box"><span class="ls-heart-icon">${icon}</span>
+            <div class="ls-heart-box">${icon}
             <input type="number" class="ls-delta-input ls-num-input" value="${c.delta}" data-idx="${i}" style="width:56px;font-weight:600;"></div>
             <textarea class="ls-change-desc ls-textarea-field" data-idx="${i}" rows="3" placeholder="${ph}">${escHtml(c.description)}</textarea>
             <button class="ls-del-change menu_button ls-del-btn" data-idx="${i}"><i class="fa-solid fa-times"></i></button>

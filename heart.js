@@ -29,18 +29,6 @@ function heartColorRgba(score, max, rt = 'neutral') {
     }
 }
 
-function glowColor(score, rt = 'neutral') {
-    const isNeg = score < 0;
-    const [r, g, b] = isNeg ? [60, 220, 60] : h2r((RELATION_TYPES[rt] || RELATION_TYPES.neutral).color);
-    const max = loveData().maxScore || 100;
-    const ratio = Math.max(0, Math.min(1, Math.abs(score) / (isNeg ? 100 : max)));
-    const baseA = 0.1 + ratio * 0.4;
-    const hoverA = 0.2 + ratio * 0.5;
-    return {
-        base: `drop-shadow(0 0 ${12 + ratio * 16}px rgba(${r},${g},${b},${baseA}))`,
-        hover: `drop-shadow(0 0 ${18 + ratio * 22}px rgba(${r},${g},${b},${hoverA}))`
-    };
-}
 
 // ─── Стили ────────────────────────────────────────────────────────────────────
 export function injectStyles() {
@@ -52,41 +40,24 @@ export function injectStyles() {
     position: fixed; top: 100px; left: 18px; bottom: auto; right: auto;
     width: 64px; height: 60px; cursor: grab; z-index: 999999;
     user-select: none; touch-action: none;
-    filter: var(--ls-glow);
-    transition: filter .3s ease, transform .35s ease;
+    transition: transform .35s ease;
 }
-#ls-widget:hover { filter: var(--ls-hover-glow); }
 #ls-widget:active { cursor: grabbing; }
 #ls-widget.ls-beat { animation: ls-hb .55s cubic-bezier(.36,1.8,.5,1) forwards; }
 #ls-widget.ls-flip { animation: ls-flip .55s ease forwards; }
 @keyframes ls-hb { 0%{transform:scale(1)} 40%{transform:scale(1.3)} 70%{transform:scale(.92)} 100%{transform:scale(1)} }
 @keyframes ls-flip { 0%{transform:scaleY(1)} 35%{transform:scaleY(0) scale(1.15)} 65%{transform:scaleY(0) scale(1.15)} 100%{transform:scaleY(1)} }
 
-/* Blur heart */
-.ls-heart {
+/* Pure blur heart — just a blurred SVG shape, nothing else */
+.ls-heart-wrap {
     position: relative; width: 100%; height: 100%;
 }
-.ls-heart-shape {
+.ls-heart-blur {
     position: absolute; inset: 0;
-    clip-path: path('M50 88 C50 88 6 56 6 30 C6 14 18 4 32 4 C42 4 48 10 50 15 C52 10 58 4 68 4 C82 4 94 14 94 30 C94 56 50 88 50 88 Z');
-    overflow: hidden;
+    transition: filter .4s ease;
 }
-.ls-heart-shape.ls-neg {
-    clip-path: path('M50 88 C50 88 6 56 6 30 C6 14 18 4 32 4 C42 4 48 10 50 15 C52 10 58 4 68 4 C82 4 94 14 94 30 C94 56 50 88 50 88 Z');
-    transform: rotate(180deg);
-}
-.ls-heart-bg {
-    position: absolute; inset: -20%; width: 140%; height: 140%;
-    filter: blur(8px);
-    transition: background .6s ease;
-}
-.ls-heart-glow {
-    position: absolute; inset: 10%; width: 80%; height: 80%;
-    border-radius: 50%;
-    filter: blur(16px);
-    transition: background .6s ease;
-    opacity: 0.7;
-}
+.ls-heart-blur svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.ls-heart-blur path { transition: fill .5s ease; }
 .ls-heart-score {
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
@@ -95,18 +66,14 @@ export function injectStyles() {
 }
 .ls-heart-num {
     font-size: 16px; font-weight: 800; line-height: 1;
-    color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.5);
+    color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.6), 0 0 20px rgba(0,0,0,.3);
     font-family: system-ui, sans-serif;
 }
 .ls-heart-denom {
     font-size: 9px; line-height: 1; margin-top: 1px;
-    color: rgba(255,255,255,.55);
-    text-shadow: 0 1px 4px rgba(0,0,0,.4);
+    color: rgba(255,255,255,.6);
+    text-shadow: 0 1px 4px rgba(0,0,0,.5);
     font-family: system-ui, sans-serif;
-}
-.ls-heart-outline {
-    position: absolute; inset: 0; z-index: 1;
-    pointer-events: none;
 }
 
 /* Tooltip */
@@ -121,13 +88,7 @@ export function injectStyles() {
     transition: opacity .18s ease; z-index: 1000000;
 }
 #ls-widget:hover .ls-tip { opacity: 1; }
-.ls-tip-label {
-    font-size: 9px; text-transform: uppercase; letter-spacing: .5px;
-    opacity: .5; margin-bottom: 2px;
-}
-.ls-tip-type {
-    font-weight: 600; margin-bottom: 2px;
-}
+.ls-tip-type { font-weight: 600; margin-bottom: 2px; }
 
 /* Panel shared styles */
 .ls-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
@@ -137,14 +98,18 @@ export function injectStyles() {
 .ls-num-input:focus { outline:none; border-color:var(--SmartThemeBodyColor,rgba(255,255,255,.4)); }
 .ls-textarea-field { flex:1; resize:vertical; background:var(--input-background-fill,rgba(255,255,255,.03)); border:1px solid var(--border-color,rgba(255,255,255,.1)); border-radius:4px; color:var(--SmartThemeBodyColor,#eee); padding:6px 8px; font-family:inherit; font-size:12px; line-height:1.55; box-sizing:border-box; min-height:52px; transition:border-color .15s; }
 .ls-textarea-field:focus { outline:none; border-color:var(--SmartThemeBodyColor,rgba(255,255,255,.35)); }
-.ls-card { display:flex; gap:8px; align-items:flex-start; margin-bottom:6px; padding:8px; border-radius:6px; background:var(--input-background-fill,rgba(255,255,255,.02)); border:1px solid var(--border-color,rgba(255,255,255,.08)); }
-.ls-card-pos { border-left:3px solid rgba(80,200,120,.5); }
-.ls-card-neg { border-left:3px solid rgba(210,80,80,.5); }
-.ls-card-neu { border-left:3px solid rgba(120,120,200,.35); }
-.ls-card-milestone { border-left:3px solid rgba(200,160,80,.4); }
+
+/* Rule cards — soft fill instead of left border */
+.ls-card { display:flex; gap:8px; align-items:flex-start; margin-bottom:6px; padding:8px; border-radius:6px; border:1px solid var(--border-color,rgba(255,255,255,.08)); transition: background .15s; }
+.ls-card-pos { background:rgba(255,180,200,.04); border-color:rgba(255,150,180,.15); }
+.ls-card-neg { background:rgba(40,40,50,.3); border-color:rgba(80,80,100,.2); }
+.ls-card-neu { background:var(--input-background-fill,rgba(255,255,255,.02)); }
+.ls-card-milestone { background:rgba(255,220,160,.04); border-color:rgba(220,180,120,.15); }
 .ls-card-milestone.ls-done { opacity:.4; }
 .ls-heart-box { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:44px; }
-.ls-heart-icon { font-size:18px; line-height:1; }
+.ls-heart-icon { font-size:16px; line-height:1; }
+.ls-heart-icon.ls-icon-pos { color: rgba(255,160,180,.7); }
+.ls-heart-icon.ls-icon-neg { color: rgba(100,100,120,.6); }
 .ls-del-btn { padding:3px 7px!important; min-width:unset!important; align-self:flex-start; opacity:.35; transition:opacity .15s; }
 .ls-del-btn:hover { opacity:.8; }
 .ls-range-box { display:flex; flex-direction:column; align-items:center; gap:5px; min-width:148px; }
@@ -212,14 +177,12 @@ input[type=range].ls-size-slider { flex:1; accent-color:var(--SmartThemeBodyColo
     document.head.appendChild(el);
 }
 
-// ─── Heart SVG outline (thin, subtle) ─────────────────────────────────────────
+// ─── Pure blur heart — SVG shape with blur filter, no outlines ────────────────
 const HEART_PATH = 'M50 88 C50 88 6 56 6 30 C6 14 18 4 32 4 C42 4 48 10 50 15 C52 10 58 4 68 4 C82 4 94 14 94 30 C94 56 50 88 50 88 Z';
 
-function buildOutlineSVG(isNeg) {
-    const tr = isNeg ? ' transform="rotate(180,50,46)"' : '';
-    return `<svg viewBox="0 0 100 92" style="width:100%;height:100%;position:absolute;inset:0;pointer-events:none;z-index:1;">
-        <path d="${HEART_PATH}"${tr} fill="none" stroke="rgba(255,255,255,.12)" stroke-width="1.5"/>
-    </svg>`;
+function blurAmount(sz) {
+    // Blur scales with widget size: small=3px, large=7px
+    return Math.max(3, Math.min(7, Math.round(sz * 0.06)));
 }
 
 // ─── Создание виджета ─────────────────────────────────────────────────────────
@@ -244,7 +207,6 @@ export function createWidget() {
     }
 
     makeDraggable(w);
-    updateGlow();
 }
 
 function buildWidgetInner() {
@@ -254,13 +216,16 @@ function buildWidgetInner() {
     const color = heartColorRgba(d.score, d.maxScore, rt);
     const interp = getActiveInterp();
     const rtInfo = RELATION_TYPES[rt] || RELATION_TYPES.neutral;
+    const sz = cfg().widgetSize || 64;
+    const blur = blurAmount(sz);
+    const tr = isNeg ? ` transform="rotate(180,50,46)"` : '';
 
-    return `<div class="ls-heart" viewBox="0 0 100 92">
-        <div class="ls-heart-shape${isNeg ? ' ls-neg' : ''}">
-            <div class="ls-heart-bg" style="background:${color}"></div>
-            <div class="ls-heart-glow" style="background:${color}"></div>
+    return `<div class="ls-heart-wrap">
+        <div class="ls-heart-blur" style="filter:blur(${blur}px)">
+            <svg viewBox="0 0 100 92" xmlns="http://www.w3.org/2000/svg">
+                <path d="${HEART_PATH}"${tr} fill="${color}"/>
+            </svg>
         </div>
-        ${buildOutlineSVG(isNeg)}
         <div class="ls-heart-score">
             <span class="ls-heart-num">${d.score}</span>
             <span class="ls-heart-denom">/${d.maxScore}</span>
@@ -277,13 +242,8 @@ export function applyWidgetSize(sz) {
     if (!w) return;
     w.style.width = sz + 'px';
     w.style.height = Math.round(sz * 0.94) + 'px';
-}
-
-function updateGlow() {
-    const d = loveData();
-    const g = glowColor(d.score, d.relationType || 'neutral');
-    document.documentElement.style.setProperty('--ls-glow', g.base);
-    document.documentElement.style.setProperty('--ls-hover-glow', g.hover);
+    // Re-render to update blur scaling
+    w.innerHTML = buildWidgetInner();
 }
 
 export function refreshWidget() {
@@ -291,7 +251,6 @@ export function refreshWidget() {
     if (!w) return;
     w.style.display = c.isEnabled ? 'block' : 'none';
     w.innerHTML = buildWidgetInner();
-    updateGlow();
 }
 
 export function pulseWidget() {
