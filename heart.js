@@ -14,15 +14,23 @@ function h2r(hex) {
 
 function heartColorRgba(score, max, rt = 'neutral') {
     const t = RELATION_TYPES[rt] || RELATION_TYPES.neutral;
+    const isHostile = rt === 'hostile';
     const ratio = Math.max(0, Math.min(1, Math.abs(score) / (score >= 0 ? max : 100)));
+
+    if (isHostile) {
+        // Hostile always uses green tones regardless of score sign
+        const negColor = '#0a8c3a';
+        const [r, g, b] = h2r(negColor);
+        const alpha = 0.15 + ratio * 0.85;
+        return `rgba(${r},${g},${b},${alpha})`;
+    }
 
     if (score >= 0) {
         const [r, g, b] = h2r(t.color);
-        // Low score = faded, high score = vivid
         const alpha = 0.15 + ratio * 0.85;
         return `rgba(${r},${g},${b},${alpha})`;
     } else {
-        const negColor = (rt === 'hostile') ? '#0a8c3a' : '#4ec900';
+        const negColor = '#4ec900';
         const [r, g, b] = h2r(negColor);
         const alpha = 0.15 + ratio * 0.85;
         return `rgba(${r},${g},${b},${alpha})`;
@@ -213,12 +221,21 @@ function buildWidgetInner() {
     const d = loveData();
     const rt = d.relationType || 'neutral';
     const isNeg = d.score < 0;
+    const isHostile = rt === 'hostile';
+    const shouldFlip = isNeg || isHostile;
     const color = heartColorRgba(d.score, d.maxScore, rt);
     const interp = getActiveInterp();
     const rtInfo = RELATION_TYPES[rt] || RELATION_TYPES.neutral;
     const sz = cfg().widgetSize || 64;
     const blur = blurAmount(sz);
-    const tr = isNeg ? ` transform="rotate(180,50,46)"` : '';
+    const tr = shouldFlip ? ` transform="rotate(180,50,46)"` : '';
+
+    // Tooltip text: if type contradicts score (hostile + high positive), show type desc
+    let tipText = interp?.description?.trim() || '';
+    if (isHostile && d.score > 0) {
+        tipText = rtInfo.desc;
+    }
+    if (!tipText) tipText = d.score + ' / ' + d.maxScore;
 
     return `<div class="ls-heart-wrap">
         <div class="ls-heart-blur" style="filter:blur(${blur}px)">
@@ -232,7 +249,7 @@ function buildWidgetInner() {
         </div>
         <div class="ls-tip">
             <div class="ls-tip-type" style="color:${rtInfo.color}">${escHtml(rtInfo.label)}</div>
-            <div>${escHtml(interp?.description?.trim() || (d.score + ' / ' + d.maxScore))}</div>
+            <div>${escHtml(tipText)}</div>
         </div>
     </div>`;
 }

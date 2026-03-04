@@ -5,7 +5,7 @@
 import { saveSettingsDebounced } from '../../../../script.js';
 import { RELATION_TYPES, MIN_SCORE } from './config.js';
 import { cfg, loveData, addToLog, escHtml, toast, getActiveInterp } from './state.js';
-import { refreshWidget, pulseWidget, applyWidgetSize } from './heart.js';
+import { refreshWidget, pulseWidget, flipWidget, applyWidgetSize } from './heart.js';
 import { updatePromptInjection, getCurrentCharacterCard, getCharacterAvatarUrl, buildCharacterCardText, getChatHistory } from './prompt.js';
 import { fetchModels, generateRules, parseGenerateResponse, analyzeChat, parseAnalyzeResponse } from './ai.js';
 
@@ -288,11 +288,10 @@ export function renderScoreLog() {
     ct.innerHTML = log.map(e => {
         const pos = e.delta > 0, neg = e.delta < 0;
         const dc = pos ? '#6ee86e' : neg ? '#ff6b6b' : '#b0b0b0';
-        const bg = pos ? 'rgba(80,200,80,.07)' : neg ? 'rgba(220,60,60,.07)' : 'rgba(180,180,180,.04)';
-        const bc = pos ? 'rgba(100,220,100,.4)' : neg ? 'rgba(220,80,80,.4)' : 'rgba(160,160,160,.2)';
+        const bg = pos ? 'rgba(80,200,80,.06)' : neg ? 'rgba(220,60,60,.06)' : 'rgba(180,180,180,.03)';
         const arr = pos ? '↑' : neg ? '↓' : '→';
         const sig = e.sign || (e.delta >= 0 ? '+' + e.delta : String(e.delta));
-        return `<div class="ls-log-entry" style="background:${bg};border-left:3px solid ${bc};">
+        return `<div class="ls-log-entry" style="background:${bg};">
             <span class="ls-log-delta" style="color:${dc};">${arr}&thinsp;${escHtml(sig)}</span>
             ${(e.reason || '').trim()
                 ? `<span class="ls-log-reason">${escHtml(e.reason)}</span>`
@@ -425,21 +424,31 @@ export function bindMainEvents() {
         if (w) { w.style.top = '100px'; w.style.bottom = 'auto'; w.style.left = '18px'; w.style.right = 'auto'; }
     });
 
-    // Тип отношений
+    // Тип отношений — клик = установить сразу
     $(document).off('click', '.ls-rel-type-btn').on('click', '.ls-rel-type-btn', function () {
         const k = this.dataset.rt, t = RELATION_TYPES[k], info = document.getElementById('ls-type-info');
-        if (!info || !t) return;
-        // Toggle info display
-        if (info.dataset.showing === k) { info.style.display = 'none'; info.dataset.showing = ''; return; }
-        info.dataset.showing = k;
-        info.innerHTML = `<span style="color:${t.color};font-weight:600;">${escHtml(t.label)}</span> — <span style="opacity:.7;">${escHtml(t.desc)}</span>
-            <button class="menu_button" style="margin-top:6px;width:100%;font-size:11px;" id="ls-set-rt" data-rt="${k}">Установить тип</button>`;
-        info.style.display = 'block';
-        document.getElementById('ls-set-rt')?.addEventListener('click', function () {
-            loveData().relationType = this.dataset.rt;
-            saveSettingsDebounced(); syncUI(); pulseWidget();
-            toast('success', 'Тип: ' + RELATION_TYPES[this.dataset.rt]?.label);
-        });
+        if (!t) return;
+
+        // Set type immediately
+        const d = loveData();
+        const wasHostile = d.relationType === 'hostile';
+        d.relationType = k;
+        saveSettingsDebounced(); updatePromptInjection();
+
+        // Flip animation if switching to/from hostile
+        const isHostile = k === 'hostile';
+        if (wasHostile !== isHostile) flipWidget(); else pulseWidget();
+
+        syncUI();
+        toast('success', 'Тип: ' + t.label);
+
+        // Show/toggle description
+        if (info) {
+            if (info.dataset.showing === k) { info.style.display = 'none'; info.dataset.showing = ''; return; }
+            info.dataset.showing = k;
+            info.innerHTML = `<span style="color:${t.color};font-weight:600;">${escHtml(t.label)}</span> — <span style="opacity:.7;">${escHtml(t.desc)}</span>`;
+            info.style.display = 'block';
+        }
     });
 
     // AI
