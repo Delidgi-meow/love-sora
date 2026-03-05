@@ -41,6 +41,16 @@ function heartColorRgba(score, max, rt = 'neutral') {
 // ─── Стили ────────────────────────────────────────────────────────────────────
 export function injectStyles() {
     if (document.getElementById('ls-styles')) return;
+
+    // Load Comfortaa font
+    if (!document.getElementById('ls-font')) {
+        const link = document.createElement('link');
+        link.id = 'ls-font';
+        link.rel = 'stylesheet';
+        link.href = 'https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap';
+        document.head.appendChild(link);
+    }
+
     const el = document.createElement('style');
     el.id = 'ls-styles';
     el.textContent = `
@@ -51,6 +61,7 @@ export function injectStyles() {
     transition: transform .35s ease;
 }
 #ls-widget:active { cursor: grabbing; }
+#ls-settings-panel { font-family: 'Comfortaa', system-ui, sans-serif; }
 #ls-widget.ls-beat { animation: ls-hb .55s cubic-bezier(.36,1.8,.5,1) forwards; }
 #ls-widget.ls-flip { animation: ls-flip .55s ease forwards; }
 @keyframes ls-hb { 0%{transform:scale(1)} 40%{transform:scale(1.3)} 70%{transform:scale(.92)} 100%{transform:scale(1)} }
@@ -75,13 +86,13 @@ export function injectStyles() {
 .ls-heart-num {
     font-size: 16px; font-weight: 800; line-height: 1;
     color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.6), 0 0 20px rgba(0,0,0,.3);
-    font-family: system-ui, sans-serif;
+    font-family: 'Comfortaa', system-ui, sans-serif;
 }
 .ls-heart-denom {
     font-size: 9px; line-height: 1; margin-top: 1px;
     color: rgba(255,255,255,.6);
     text-shadow: 0 1px 4px rgba(0,0,0,.5);
-    font-family: system-ui, sans-serif;
+    font-family: 'Comfortaa', system-ui, sans-serif;
 }
 
 /* Tooltip */
@@ -90,7 +101,7 @@ export function injectStyles() {
     background: rgba(18,18,22,.95); backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
     padding: 6px 10px; font-size: 10px; line-height: 1.45;
-    color: rgba(255,255,255,.8); font-family: Comfortaa, system-ui, sans-serif;
+    color: rgba(255,255,255,.8); font-family: 'Comfortaa', system-ui, sans-serif;
     pointer-events: none; opacity: 0; white-space: normal;
     text-align: center; max-width: 200px; min-width: 80px;
     transition: opacity .18s ease; z-index: 1000000;
