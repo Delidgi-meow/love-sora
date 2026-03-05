@@ -78,10 +78,10 @@ function importPresetJSON(json) {
 }
 
 // ─── HTML панели ──────────────────────────────────────────────────────────────
-function accordion(id, title, icon, content, open = false) {
+function accordion(id, title, content, open = false) {
     return `<div class="inline-drawer" id="${id}">
         <div class="inline-drawer-toggle inline-drawer-header">
-            <b><i class="fa-solid ${icon}" style="margin-right:6px;opacity:.5"></i>${title}</b>
+            <b>${title}</b>
             <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
         <div class="inline-drawer-content"${open ? '' : ' style="display:none"'}>${content}</div>
@@ -193,10 +193,10 @@ export function settingsPanelHTML() {
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content">
-                ${accordion('ls-acc-main', 'Основное', 'fa-heart', mainContent, true)}
-                ${accordion('ls-acc-rules', 'Правила', 'fa-list-check', rulesContent)}
-                ${accordion('ls-acc-ai', 'AI генерация', 'fa-robot', aiContent)}
-                ${accordion('ls-acc-presets', 'Пресеты', 'fa-bookmark', presetsContent)}
+                ${accordion('ls-acc-main', 'Основное', mainContent, true)}
+                ${accordion('ls-acc-rules', 'Правила', rulesContent)}
+                ${accordion('ls-acc-ai', 'AI генерация', aiContent)}
+                ${accordion('ls-acc-presets', 'Пресеты', presetsContent)}
             </div>
         </div>
     </div>`;
@@ -424,31 +424,29 @@ export function bindMainEvents() {
         if (w) { w.style.top = '100px'; w.style.bottom = 'auto'; w.style.left = '18px'; w.style.right = 'auto'; }
     });
 
-    // Тип отношений — клик = установить сразу
+    // Тип отношений — клик = просмотр, кнопка внутри = применить
     $(document).off('click', '.ls-rel-type-btn').on('click', '.ls-rel-type-btn', function () {
         const k = this.dataset.rt, t = RELATION_TYPES[k], info = document.getElementById('ls-type-info');
-        if (!t) return;
+        if (!t || !info) return;
 
-        // Set type immediately
-        const d = loveData();
-        const wasHostile = d.relationType === 'hostile';
-        d.relationType = k;
-        saveSettingsDebounced(); updatePromptInjection();
+        // Toggle info
+        if (info.dataset.showing === k) { info.style.display = 'none'; info.dataset.showing = ''; return; }
+        info.dataset.showing = k;
+        const isActive = loveData().relationType === k;
+        info.innerHTML = `<span style="color:${t.color};font-weight:600;">${escHtml(t.label)}</span> — <span style="opacity:.7;">${escHtml(t.desc)}</span>`
+            + (isActive ? '<div style="font-size:10px;opacity:.4;margin-top:4px;">Текущий тип</div>' : `<button class="menu_button" style="margin-top:6px;width:100%;font-size:11px;" id="ls-set-rt" data-rt="${k}">Применить</button>`);
+        info.style.display = 'block';
 
-        // Flip animation if switching to/from hostile
-        const isHostile = k === 'hostile';
-        if (wasHostile !== isHostile) flipWidget(); else pulseWidget();
-
-        syncUI();
-        toast('success', 'Тип: ' + t.label);
-
-        // Show/toggle description
-        if (info) {
-            if (info.dataset.showing === k) { info.style.display = 'none'; info.dataset.showing = ''; return; }
-            info.dataset.showing = k;
-            info.innerHTML = `<span style="color:${t.color};font-weight:600;">${escHtml(t.label)}</span> — <span style="opacity:.7;">${escHtml(t.desc)}</span>`;
-            info.style.display = 'block';
-        }
+        document.getElementById('ls-set-rt')?.addEventListener('click', function () {
+            const d = loveData();
+            const wasHostile = d.relationType === 'hostile';
+            d.relationType = this.dataset.rt;
+            saveSettingsDebounced(); updatePromptInjection();
+            const isHostile = this.dataset.rt === 'hostile';
+            if (wasHostile !== isHostile) flipWidget(); else pulseWidget();
+            syncUI();
+            toast('success', 'Тип: ' + RELATION_TYPES[this.dataset.rt]?.label);
+        });
     });
 
     // AI
